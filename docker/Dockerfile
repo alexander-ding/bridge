@@ -12,7 +12,6 @@ ENV LANG en_US.UTF-8
 
 COPY setup-amd64.sh /usr/local/bin/container-setup
 COPY entrypoint.sh /usr/local/bin/container-entrypoint
-COPY .image-version /etc/image-version
 
 RUN /usr/local/bin/container-setup
 

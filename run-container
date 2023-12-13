@@ -13,7 +13,6 @@ image_name=bridge-container-env
 image_url="ghcr.io/${github_org}/${image_name}"
 docker_dir="${SCRIPT_DIR}/docker"
 
-version_file="${SCRIPT_DIR}/docker/.image-version"
 use_graphics=true # Set to true to enable X11 support
 
 clean=false
@@ -281,7 +280,6 @@ get_version_string() {
 
 build_image() {
 	# Add a version string so we can track the container version
-	echo "${container_name} $(get_version_string)" >"${version_file}"
 	echo "image tag -> ${image_name}:${tag}"
 	if test $platform = linux/arm64; then
 		docker build -t "${image_name}:${tag}" -f Dockerfile.arm64 --platform linux/arm64 .
