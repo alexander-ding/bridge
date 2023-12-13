@@ -7,12 +7,6 @@ container.
 ## Getting started
 
 ```
-# 1. build docker image locally
-cd docker
-./cs1680-build-docker
-
-# 2. start development environment
-cd ..
 ./cs1680-run-docker
 ```
 

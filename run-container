@@ -278,16 +278,6 @@ get_version_string() {
 	echo "${image_name}-${commit}-${ts}"
 }
 
-build_image() {
-	# Add a version string so we can track the container version
-	echo "image tag -> ${image_name}:${tag}"
-	if test $platform = linux/arm64; then
-		docker build -t "${image_name}:${tag}" -f Dockerfile.arm64 --platform linux/arm64 .
-	else
-		docker build -t "${image_name}:${tag}" -f Dockerfile --platform linux/amd64 .
-	fi
-}
-
 enter_build_dir() {
 	pushd "${docker_dir}"
 }
@@ -317,7 +307,6 @@ Top-level options:
  --verbose  Execute docker with verbose output
  --clean    Discard current container state when using 'start'
  --debug    Use to show execution of this script for debugging
- --arm      Force building for ARM64 platform (ARM64/M1 macs only)
 
 Commands:
  setup        Download/update the container image (normal first time setup)
