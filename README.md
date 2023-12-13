@@ -7,6 +7,7 @@ container.
 ## Getting started
 
 ```
+./cs1680-run-docker --setup
 ./cs1680-run-docker
 ```
 
