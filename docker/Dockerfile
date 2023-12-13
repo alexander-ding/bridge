@@ -1,6 +1,6 @@
 FROM ubuntu:jammy
 
-LABEL org.opencontainers.image.source=https://github.com/brown-csci1680/container-dev
+LABEL org.opencontainers.image.source=https://github.com/brown-cs1680/bridge-container-env
 
 # set environment variables for tzdata
 ARG TZ=America/New_York

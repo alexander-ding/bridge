@@ -1,335 +1,319 @@
 #! /bin/bash
 #set -x
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 maindir=""
 container_name=cs1680-container
 network_name=net-cs1680
-github_org=brown-csci1680
-user_home="/home/cs1680-user"  # User's home dir inside container
+github_org=brown-cs1680-f23
+user_home="/home/cs1680-user" # User's home dir inside container
 
-
-image_name=cs1680-dev
+image_name=bridge-container-env
 image_url="ghcr.io/${github_org}/${image_name}"
 docker_dir="${SCRIPT_DIR}/docker"
 
 version_file="${SCRIPT_DIR}/docker/.image-version"
-use_graphics=true  # Set to true to enable X11 support
+use_graphics=true # Set to true to enable X11 support
 
 clean=false
 verbose=false
-arch="`uname -m`"
+arch="$(uname -m)"
 
 # Set automatically by platform detection
 tag=
 platform=
 
 if stat --format %i / >/dev/null 2>&1; then
-    statformatarg="--format"
+	statformatarg="--format"
 else
-    statformatarg="-f"
+	statformatarg="-f"
 fi
-myfileid=`stat $statformatarg %d:%i "${BASH_SOURCE[0]}" 2>/dev/null`
+myfileid=$(stat $statformatarg %d:%i "${BASH_SOURCE[0]}" 2>/dev/null)
 
-dir="`pwd`"
+dir="$(pwd)"
 subdir=""
 while test "$dir" != / -a "$dir" != ""; do
-    thisfileid=`stat $statformatarg %d:%i "$dir"/${BASH_SOURCE[0]} 2>/dev/null`
-    if test -n "$thisfileid" -a "$thisfileid" = "$myfileid"; then
-        maindir="$dir"
-        break
-    fi
-    subdir="/`basename "$dir"`$subdir"
-    dir="`dirname "$dir"`"
+	thisfileid=$(stat $statformatarg %d:%i "$dir"/${BASH_SOURCE[0]} 2>/dev/null)
+	if test -n "$thisfileid" -a "$thisfileid" = "$myfileid"; then
+		maindir="$dir"
+		break
+	fi
+	subdir="/$(basename "$dir")$subdir"
+	dir="$(dirname "$dir")"
 done
 
 if test -z "$maindir" && expr "${BASH_SOURCE[0]}" : / >/dev/null 2>&1; then
-    maindir="`dirname "${BASH_SOURCE[0]}"`"
-    subdir=""
+	maindir="$(dirname "${BASH_SOURCE[0]}")"
+	subdir=""
 fi
 
 if test -z "$maindir"; then
-    echo "Error: could not determine your directory."
-    exit 1
+	echo "Error: could not determine your directory."
+	exit 1
 fi
 
-
-vexec () {
-    if $verbose; then
-        echo "$@"
-    fi
-    "$@"
+vexec() {
+	if $verbose; then
+		echo "$@"
+	fi
+	"$@"
 }
 
 has_container() {
-    [ $( docker ps -a | grep $container_name | wc -l ) -gt 0 ]
+	[ $(docker ps -a | grep $container_name | wc -l) -gt 0 ]
 }
 
 remove_containers() {
-    local _name
-    _name="${1:-${container_name}}"
-    echo "Removing all existing ${container_name} containers..."
-    docker ps -a -f name=${_name} --format "{{.ID}}" | while read line ; do docker rm --force $line ; done
+	local _name
+	_name="${1:-${container_name}}"
+	echo "Removing all existing ${container_name} containers..."
+	docker ps -a -f name=${_name} --format "{{.ID}}" | while read line; do docker rm --force $line; done
 }
 
 stop_container() {
-    local _name
-    _name="${1:-${container_name}}"
+	local _name
+	_name="${1:-${container_name}}"
 
-    docker stop "${_name}"
+	docker stop "${_name}"
 }
 
 start_container() {
-    echo "Entering existing container"
-    echo "(To reset this container on startup, run with --clean)"
+	echo "Entering existing container"
+	echo "(To reset this container on startup, run with --clean)"
 
-    if $use_graphics; then
-	setup_xhost
-    fi
+	if $use_graphics; then
+		setup_xhost
+	fi
 
-    docker start ${container_name}
-    run_shell
+	docker start ${container_name}
+	run_shell
 }
 
 run_in_container() {
-    docker exec -it $container_name $@
+	docker exec -it $container_name $@
 }
 
 run_shell() {
-    run_in_container "/bin/bash"
+	run_in_container "/bin/bash"
 }
 
 has_network() {
-    local rv
-    rv=0
-    $(docker network inspect "${network_name}" 2>&1 > /dev/null) || rv=$?
-    if [[ $rv == 0 ]]; then
-	return 0
-    else
-	return 1
-    fi
+	local rv
+	rv=0
+	$(docker network inspect "${network_name}" 2>&1 >/dev/null) || rv=$?
+	if [[ $rv == 0 ]]; then
+		return 0
+	else
+		return 1
+	fi
 }
 
 create_network() {
-    if ! has_network; then
-	echo "Creating container-local network ${network_name}"
-	docker network create "${network_name}"
-    else
-	echo "Network ${network_name} already exists"
-    fi
+	if ! has_network; then
+		echo "Creating container-local network ${network_name}"
+		docker network create "${network_name}"
+	else
+		echo "Network ${network_name} already exists"
+	fi
 }
 
 get_network_info() {
-    docker network inspect "${network_name}"
+	docker network inspect "${network_name}"
 }
 
 remove_network() {
-    docker network rm "${network_name}"
+	docker network rm "${network_name}"
 }
 
 xhost_warned=false
-do_xhost()
-{
-    arg=$@
+do_xhost() {
+	arg=$@
 
-    if $(which xhost); then
-	xhost $@
-    else
-	if ! $xhost_warned; then
-	    echo "Warning:  xhost was not detected on your system.  You may have issues running gaphical apps like Wireshark."
-	    xhost_warned=true
+	if $(which xhost); then
+		xhost $@
+	else
+		if ! $xhost_warned; then
+			echo "Warning:  xhost was not detected on your system.  You may have issues running gaphical apps like Wireshark."
+			xhost_warned=true
+		fi
 	fi
-    fi
 }
 
 setup_xhost() {
-    # OS-specific handling for X11 forwarding
-    if test "$(uname)" = Linux; then
-	if grep -qi Microsoft /proc/version; then # Windows
-	    true # Nothing to do, configured in GUI outside WSL
-	else # Native Linux
-	    if test -n "$DISPLAY"; then
-		do_xhost +local:
-	    else
-		# Don't bother doing anything if $DISPLAY isn't set--this might be a headless system
-		echo "$DISPLAY is not set, skipping X11 configuration"
-	    fi
+	# OS-specific handling for X11 forwarding
+	if test "$(uname)" = Linux; then
+		if grep -qi Microsoft /proc/version; then # Windows
+			true                                     # Nothing to do, configured in GUI outside WSL
+		else                                      # Native Linux
+			if test -n "$DISPLAY"; then
+				do_xhost +local:
+			else
+				# Don't bother doing anything if $DISPLAY isn't set--this might be a headless system
+				echo "$DISPLAY is not set, skipping X11 configuration"
+			fi
+		fi
+	elif test "$(uname)" = Darwin; then # Mac OS
+		do_xhost +localhost
 	fi
-    elif test "$(uname)" = Darwin; then # Mac OS
-	do_xhost +localhost
-    fi
 }
 
 start_new_container() {
-    netarg="--expose=6169/tcp -p 6169:6169/tcp"
+	netarg="--expose=6169/tcp -p 6169:6169/tcp"
 
-    ssharg=
-    sshenvarg=
-    if test -n "$SSH_AUTH_SOCK" -a "`uname`" = Darwin; then
-	ssharg=" -v /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock"
-	sshenvarg=" -e SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock"
-    fi
-
-    x11arg=
-    x11envarg=
-    if $use_graphics; then
-	# Add port forward for XPRA (backup display method)
-	netarg="${netarg} -p 127.0.0.1:14500:14500"
-	netarg="${netarg} -p 127.0.0.1:14600:14600"
-
-	# OS-specific handling for X11 forwarding
-	if test "$(uname)" = Linux; then
-	    if grep -qi Microsoft /proc/version; then # Windows
-		x11arg=""
-		x11envarg="-e DISPLAY=host.docker.internal:0"
-	    else # Native Linux
-		if test -n "$DISPLAY"; then
-		    x11arg="-v /tmp/.X11-unix:/tmp/.X11-unix"
-		    x11envarg="-e DISPLAY=unix$DISPLAY"
-		else
-		    # Don't bother doing anything if $DISPLAY isn't set--this might be a headless system
-		    echo "$DISPLAY is not set, skipping X11 configuration"
-		fi
-	    fi
-	elif test "$(uname)" = Darwin; then # Mac OS
-	    x11arg=""
-	    x11envarg="-e DISPLAY=host.docker.internal:0"
+	ssharg=
+	sshenvarg=
+	if test -n "$SSH_AUTH_SOCK" -a "$(uname)" = Darwin; then
+		ssharg=" -v /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock"
+		sshenvarg=" -e SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock"
 	fi
 
-	# Add any necessary xhost configs
-	setup_xhost
-    fi
+	x11arg=
+	x11envarg=
+	if $use_graphics; then
+		# Add port forward for XPRA (backup display method)
+		netarg="${netarg} -p 127.0.0.1:14500:14500"
+		netarg="${netarg} -p 127.0.0.1:14600:14600"
 
-    create_network
+		# OS-specific handling for X11 forwarding
+		if test "$(uname)" = Linux; then
+			if grep -qi Microsoft /proc/version; then # Windows
+				x11arg=""
+				x11envarg="-e DISPLAY=host.docker.internal:0"
+			else # Native Linux
+				if test -n "$DISPLAY"; then
+					x11arg="-v /tmp/.X11-unix:/tmp/.X11-unix"
+					x11envarg="-e DISPLAY=unix$DISPLAY"
+				else
+					# Don't bother doing anything if $DISPLAY isn't set--this might be a headless system
+					echo "$DISPLAY is not set, skipping X11 configuration"
+				fi
+			fi
+		elif test "$(uname)" = Darwin; then # Mac OS
+			x11arg=""
+			x11envarg="-e DISPLAY=host.docker.internal:0"
+		fi
 
-    vexec docker run -it \
-          --name $container_name \
-	  --platform $platform \
-	  --network "${network_name}" --network-alias "[${container_name}]" \
-	  --add-host=host.docker.internal:host-gateway \
-	  --privileged --security-opt seccomp=unconfined \
-	  --cap-add=SYS_PTRACE --cap-add=NET_ADMIN \
-	  -v "$maindir/home":"${user_home}" \
-          -w "${user_home}" \
-	  $x11arg $x11envarg \
-	  $netarg $sshenvarg "${image_name}:${tag}"
+		# Add any necessary xhost configs
+		setup_xhost
+	fi
+
+	create_network
+
+	vexec docker run -it \
+		--name $container_name \
+		--platform $platform \
+		--network "${network_name}" --network-alias "[${container_name}]" \
+		--add-host=host.docker.internal:host-gateway \
+		--privileged --security-opt seccomp=unconfined \
+		--cap-add=SYS_PTRACE --cap-add=NET_ADMIN \
+		-v "$maindir/home":"${user_home}" \
+		-w "${user_home}" \
+		$x11arg $x11envarg \
+		$netarg $sshenvarg "${image_name}:${tag}"
 }
-
-
 
 if test -n "$maindir"; then
-    existing_image="`docker ps -f status=running -f ancestor=${image_name}:${tag} --no-trunc --format "{{.CreatedAt}},{{.ID}}" | sort -r | head -n 1`"
-    if test -n "$existing_image"; then
-        created_at="`echo $existing_image | sed 's/,.*//'`"
-        image="`echo $existing_image | sed 's/^.*,//'`"
-        image12="`echo $image | head -c 12`"
-        echo "* Using running container $image12, created $created_at" 1>&2
-        echo "- To start a new container, exit then \`$0 -f\`" 1>&2
-        echo "- To kill this container, exit then \`docker kill $image12\`" 1>&2
-        vexec docker exec -it $image /bin/bash
-    fi
+	existing_image="$(docker ps -f status=running -f ancestor=${image_name}:${tag} --no-trunc --format "{{.CreatedAt}},{{.ID}}" | sort -r | head -n 1)"
+	if test -n "$existing_image"; then
+		created_at="$(echo $existing_image | sed 's/,.*//')"
+		image="$(echo $existing_image | sed 's/^.*,//')"
+		image12="$(echo $image | head -c 12)"
+		echo "* Using running container $image12, created $created_at" 1>&2
+		echo "- To start a new container, exit then \`$0 -f\`" 1>&2
+		echo "- To kill this container, exit then \`docker kill $image12\`" 1>&2
+		vexec docker exec -it $image /bin/bash
+	fi
 fi
 
-do_start_or_run()
-{
-    if $clean; then
-	remove_containers && start_new_container
-    elif has_container; then
-	start_container
-    else
-	start_new_container
-    fi
+do_start_or_run() {
+	if $clean; then
+		remove_containers && start_new_container
+	elif has_container; then
+		start_container
+	else
+		start_new_container
+	fi
 
 }
 
-__check_platform()
-{
-    if test -z "$platform" -a \( "$arch" = "arm64" -o "$arch" = "aarch64" \); then
-	platform=linux/arm64
-    elif test -z "$platform"; then
-	platform=linux/amd64
-    fi
+__check_platform() {
+	if test -z "$platform" -a \( "$arch" = "arm64" -o "$arch" = "aarch64" \); then
+		platform=linux/arm64
+	elif test -z "$platform"; then
+		platform=linux/amd64
+	fi
 
-    if test -z "$tag" -a "$platform" = linux/arm64; then
-	tag="arm64"
-    elif test -z "$tag"; then
-	tag="latest"
-    fi
+	if test -z "$tag" -a "$platform" = linux/arm64; then
+		tag="arm64"
+	elif test -z "$tag"; then
+		tag="latest"
+	fi
 
 }
 
-load_image()
-{
-    local target
-    if [[ "${tag}" == "latest" ]]; then
-       target="${image_url}"
-    else
-       target="${image_url}:${tag}"
-    fi
+load_image() {
+	local target
+	if [[ "${tag}" == "latest" ]]; then
+		target="${image_url}"
+	else
+		target="${image_url}:${tag}"
+	fi
 
-    echo "Trying to load image at ${target}"
+	echo "Trying to load image at ${target}"
 
-    docker pull "${target}"
-    docker tag "${target}" "${image_name}:${tag}"
+	docker pull "${target}"
+	docker tag "${target}" "${image_name}:${tag}"
 }
 
-get_version_string()
-{
-    commit=""
+get_version_string() {
+	commit=""
 
-    if ! command -v git > /dev/null ; then
-	commit="NOGIT"
-    else
-	commit=$(git rev-parse --short HEAD)
-    fi
-    ts="$(date -Iseconds)"
+	if ! command -v git >/dev/null; then
+		commit="NOGIT"
+	else
+		commit=$(git rev-parse --short HEAD)
+	fi
+	ts="$(date -Iseconds)"
 
-    echo "${image_name}-${commit}-${ts}"
+	echo "${image_name}-${commit}-${ts}"
 }
 
-build_image()
-{
-    # Add a version string so we can track the container version
-    echo "${container_name} $(get_version_string)" > "${version_file}"
+build_image() {
+	# Add a version string so we can track the container version
+	echo "${container_name} $(get_version_string)" >"${version_file}"
 	echo "image tag -> ${image_name}:${tag}"
-    if test $platform = linux/arm64; then
-	docker build -t "${image_name}:${tag}" -f Dockerfile.arm64 --platform linux/arm64 .
-    else
-	docker build -t "${image_name}:${tag}" -f Dockerfile --platform linux/amd64 .
-    fi
+	if test $platform = linux/arm64; then
+		docker build -t "${image_name}:${tag}" -f Dockerfile.arm64 --platform linux/arm64 .
+	else
+		docker build -t "${image_name}:${tag}" -f Dockerfile --platform linux/amd64 .
+	fi
 }
 
-enter_build_dir()
-{
-    pushd "${docker_dir}"
+enter_build_dir() {
+	pushd "${docker_dir}"
 }
 
-leave_build_dir()
-{
-    popd
+leave_build_dir() {
+	popd
 }
 
+push_image() {
+	local target
+	target="${image_url}:${tag}"
+	docker tag "${image_name}:${tag}" "${target}"
 
-push_image()
-{
-    local target
-    target="${image_url}:${tag}"
-    docker tag "${image_name}:${tag}" "${target}"
-
-    echo "Pushing ${target}"
-    docker push "${target}"
+	echo "Pushing ${target}"
+	docker push "${target}"
 }
 
-remove_image()
-{
-    docker image rm --force "${image_name}:${tag}"
-    docker image rm --force "${image_url}:${tag}"
+remove_image() {
+	docker image rm --force "${image_name}:${tag}"
+	docker image rm --force "${image_url}:${tag}"
 }
 
-do_help()
-{
-    cat <<EOF
+do_help() {
+	cat <<EOF
 Usage $0:  [--verbose] [--clean] [--debug] [--arm] [command] [command opts...]
 Top-level options:
  --verbose  Execute docker with verbose output
@@ -354,115 +338,115 @@ If no command is specified, the default is 'start'.
 EOF
 }
 
-main()
-{
-    POSITIONAL=()
-    while [[ $# -gt 0 ]]; do
-	key=$1
-	case $key in
-	    --verbose|-v)
-		shift
-		verbose=true
-		;;
-	    --clean|-C)
-		shift
-		clean=true
-		;;
-	    --debug)
-		shift
-		set -x
-		;;
-	    -a|--arm|--arm64|--aarch64)
-		shift
-		if [[ ( "${arch}" == "arm64" ) || ( "${arch}" == "aarch64" ) ]]; then
-		    platform=linux/arm64
-		else
-		    echo "$0 --arm only works on arm64 hosts (platform is ${arch})" 1>&2
-		    exit 1
-		fi
-		;;
-	    -x|--x86-64)
-		shift
-		platform=linux/amd64
-		;;
-	    --help)
-		shift
+main() {
+	POSITIONAL=()
+	while [[ $# -gt 0 ]]; do
+		key=$1
+		case $key in
+		--verbose | -v)
+			shift
+			verbose=true
+			;;
+		--clean | -C)
+			shift
+			clean=true
+			;;
+		--debug)
+			shift
+			set -x
+			;;
+		-a | --arm | --arm64 | --aarch64)
+			shift
+			if [[ ("${arch}" == "arm64") || ("${arch}" == "aarch64") ]]; then
+				platform=linux/arm64
+			else
+				echo "$0 --arm only works on arm64 hosts (platform is ${arch})" 1>&2
+				exit 1
+			fi
+			;;
+		-x | --x86-64)
+			shift
+			platform=linux/amd64
+			;;
+		--help)
+			shift
+			do_help
+			exit 0
+			;;
+		*)
+			POSITIONAL+=("$1")
+			shift
+			;;
+		esac
+	done
+	set -- "${POSITIONAL[@]}"
+
+	__check_platform
+
+	# Default subcommand
+	if [[ $# == 0 ]]; then
+		do_start_or_run
+		exit 0
+	fi
+
+	# Subcommands
+	case $1 in
+	help)
 		do_help
 		exit 0
 		;;
-	    *)
-		POSITIONAL+=("$1")
+	start | run)
 		shift
-	esac
-    done
-    set -- "${POSITIONAL[@]}"
-
-    __check_platform
-
-    # Default subcommand
-    if [[ $# == 0 ]]; then
-	do_start_or_run
-	exit 0
-    fi
-
-    # Subcommands
-    case $1 in
-	help)
-	    do_help
-	    exit 0
-	    ;;
-	start|run)
-	    shift
-	    do_start_or_run $@
-	    ;;
+		do_start_or_run $@
+		;;
 	shell)
-	    shift
-	    run_shell $@
-	    ;;
+		shift
+		run_shell $@
+		;;
 	stop)
-	    shift
-	    stop_container $@
-	    ;;
+		shift
+		stop_container $@
+		;;
 	clean)
-	    shift
-	    remove_containers $@
-	    ;;
+		shift
+		remove_containers $@
+		;;
 	reset)
-	    shift
-	    remove_containers
-	    do_start_or_run $@
-	    ;;
-	setup|download-image)
-	    shift
-	    remove_containers
+		shift
+		remove_containers
+		do_start_or_run $@
+		;;
+	setup | download-image)
+		shift
+		remove_containers
 
-	    enter_build_dir
-	    load_image $@ || true
-	    leave_build_dir
-	    ;;
-	build|build-image|manual-build)
-	    shift
-	    remove_containers
+		enter_build_dir
+		load_image $@ || true
+		leave_build_dir
+		;;
+	build | build-image | manual-build)
+		shift
+		remove_containers
 
-	    enter_build_dir
-	    build_image $@ || true
-	    leave_build_dir
-	    ;;
-	push-image|push-release)
-	    shift
-	    push_image $@
-	    ;;
-	remove-image|clean-image|reset-image)
-	    shift
-	    remove_containers "${container_name}"
-	    remove_image $@
-	    ;;
+		enter_build_dir
+		build_image $@ || true
+		leave_build_dir
+		;;
+	push-image | push-release)
+		shift
+		push_image $@
+		;;
+	remove-image | clean-image | reset-image)
+		shift
+		remove_containers "${container_name}"
+		remove_image $@
+		;;
 	*)
-	    echo "Invalid command $1"
-	    do_help
-	    exit 1
-	    ;;
-    esac
+		echo "Invalid command $1"
+		do_help
+		exit 1
+		;;
+	esac
 }
 
 main $@
