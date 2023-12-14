@@ -5,7 +5,7 @@ This repo contains the development container for our Bridge final project, built
 ## Getting started
 
 ```bash
-./cs1680-run-docker --setup
+./cs1680-run-docker setup
 ./cs1680-run-docker
 ```
 

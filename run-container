@@ -19,8 +19,8 @@ clean=false
 verbose=false
 arch="$(uname -m)"
 
+tag=main
 # Set automatically by platform detection
-tag=
 platform=
 
 if stat --format %i / >/dev/null 2>&1; then
@@ -209,7 +209,7 @@ start_new_container() {
 		-v "$maindir/home":"${user_home}" \
 		-w "${user_home}" \
 		$x11arg $x11envarg \
-		$netarg $sshenvarg "${image_name}:${tag}"
+		$netarg $sshenvarg "${image_url}:${tag}"
 }
 
 if test -n "$maindir"; then
@@ -264,28 +264,6 @@ get_version_string() {
 	ts="$(date -Iseconds)"
 
 	echo "${image_name}-${commit}-${ts}"
-}
-
-enter_build_dir() {
-	pushd "${docker_dir}"
-}
-
-leave_build_dir() {
-	popd
-}
-
-push_image() {
-	local target
-	target="${image_url}:${tag}"
-	docker tag "${image_name}:${tag}" "${target}"
-
-	echo "Pushing ${target}"
-	docker push "${target}"
-}
-
-remove_image() {
-	docker image rm --force "${image_name}:${tag}"
-	docker image rm --force "${image_url}:${tag}"
 }
 
 do_help() {
