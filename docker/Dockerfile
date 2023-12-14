@@ -9,10 +9,18 @@ ENV TZ=${TZ}
 
 # include manual pages and documentation
 ARG DEBIAN_FRONTEND=noninteractive
+
+# set default locale
 ENV LANG en_US.UTF-8
 
 COPY setup-amd64.sh /usr/local/bin/container-setup-amd64
 COPY setup-arm64.sh /usr/local/bin/container-setup-arm64
+# copy new sources.list
+COPY --chown=root:root sources.list /tmp/sources.list
+RUN case ${TARGETARCH} in \
+    "amd64")  mv /etc/apt/sources.list ;; \
+    "arm64")  rm /tmp/sources.list ;; \
+    esac
 COPY entrypoint.sh /usr/local/bin/container-entrypoint
 RUN /usr/local/bin/container-setup-${TARGETARCH}
 
