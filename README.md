@@ -1,8 +1,6 @@
-# CS 1680: development environment
+# Bridge Development Container
 
-This repo contains a minimal dev environment setup for CS 1680. In
-particular, it provides the scripts to create the course Docker
-container.
+This repo contains the development container for our Bridge final project, built for Brown's cs1680, fall 2023.
 
 ## Getting started
 

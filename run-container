@@ -6,7 +6,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 maindir=""
 container_name=cs1680-container
 network_name=net-cs1680
-github_org=brown-cs1680-f23
+github_org=alexander-ding
 user_home="/home/cs1680-user" # User's home dir inside container
 
 image_name=bridge-container-env
@@ -242,27 +242,15 @@ __check_platform() {
 	elif test -z "$platform"; then
 		platform=linux/amd64
 	fi
-
-	if test -z "$tag" -a "$platform" = linux/arm64; then
-		tag="arm64"
-	elif test -z "$tag"; then
-		tag="latest"
-	fi
-
 }
 
 load_image() {
 	local target
-	if [[ "${tag}" == "latest" ]]; then
-		target="${image_url}"
-	else
-		target="${image_url}:${tag}"
-	fi
+	target="${image_url}:main"
 
 	echo "Trying to load image at ${target}"
 
-	docker pull "${target}"
-	docker tag "${target}" "${image_name}:${tag}"
+	docker pull --platform "${platform}" "${target}"
 }
 
 get_version_string() {
