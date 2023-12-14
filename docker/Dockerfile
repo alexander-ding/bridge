@@ -18,7 +18,7 @@ COPY setup-arm64.sh /usr/local/bin/container-setup-arm64
 # copy new sources.list
 COPY --chown=root:root sources.list /tmp/sources.list
 RUN case ${TARGETARCH} in \
-    "amd64")  mv /etc/apt/sources.list ;; \
+    "amd64")  mv /tmp/sources.list /etc/apt/sources.list ;; \
     "arm64")  rm /tmp/sources.list ;; \
     esac
 COPY entrypoint.sh /usr/local/bin/container-entrypoint

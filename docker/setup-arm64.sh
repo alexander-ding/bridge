@@ -95,3 +95,6 @@ usermod -a -G wireshark cs1680-user
   echo 'echo 1'
 ) >/usr/bin/cs1680-docker-version
 chmod ugo+rx,u+w,go-w /usr/bin/cs1680-docker-version
+
+# set up permission for /opt/rust
+chmod -R 777 /opt/rust
