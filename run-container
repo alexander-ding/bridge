@@ -9,7 +9,7 @@ network_name=net-cs1680
 github_org=alexander-ding
 user_home="/home/cs1680-user" # User's home dir inside container
 
-image_name=bridge-container-env
+image_name=bridge
 image_url="ghcr.io/${github_org}/${image_name}"
 docker_dir="${SCRIPT_DIR}/docker"
 

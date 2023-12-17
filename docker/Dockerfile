@@ -1,7 +1,7 @@
 FROM ubuntu:jammy
 ARG TARGETARCH
 
-LABEL org.opencontainers.image.source=https://github.com/brown-cs1680-f23/bridge-container-env
+LABEL org.opencontainers.image.source=https://github.com/alexander-ding/bridge
 
 # set environment variables for tzdata
 ARG TZ=America/New_York

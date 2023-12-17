@@ -1,37 +1,25 @@
-# Bridge Development Container
+# Bridge
 
-This repo contains the development container for our Bridge final project, built for Brown's cs1680, fall 2023.
+> In compliance with Brown's academic policy, the source code is not published.
+This repository only houses the development container source.
 
-## Getting started
+[Demo Video](https://www.youtube.com/watch?v=E2NQlRVIX6Q) | [Website]()
 
-```bash
-./cs1680-run-docker setup
-./cs1680-run-docker
-```
+Bridge is an RFC-compliant custom IP/TCP/HTTP implementation that runs through UDP sockets to create a virtual network.
+This virtual network can be bridged with the real kernel network stack to interface with real-world networking applications using a combination of `iptables` settings and a custom proxy thread to relay packets between a dummy Linux network interface and the virtual network.
+Moreover, each virtual host is abstracted as a microkernel that serves networking "syscalls" via RPC, allowing multiple applications to use the same virtual IP address simultaneously just as they would on a real host.
 
-For detailed setup instructions, refer to our Lab 0 setup guide!
+As shown in our [demo video](https://www.youtube.com/watch?v=E2NQlRVIX6Q), we use Bridge to build a variety of networking applications on this custom network stack--including a netcat clone, a static HTTP file server, and a dynamic HTTP file server serving POST requests--to interface with themselves, as well as other real-world networking applications across the internet.
 
-## Wireshark setup
+We also publish a [website]() online running our static and dynamic HTTP file servers to serve internet traffic and demonstrate our entire network stack.
+When a TCP packet comes in addressed to a port forwarded by our virtual stack (i.e., port 80, served by the file server), Linux sends forwards the packet to the virtual network device, created by the virtual router proxy.
+The virtual router proxy, listening for traffic on the virtual network device, forwards the byte stream to the virtual network stack.
+Our custom IP layer then parses the byte stream and forwards the datagram from the router to the appropriate host using its internal IP table.
+On the virtual host, our custom TCP layer then parses the body of the datagram to appropriately handle the TCP packet.
+The custom HTTP server, running on top of this TCP implementation, makes `read` and `write` calls to the TCP socket, parsing HTTP requests and sending back HTTP responses according to an application-registered HTTP handler.
+Importantly, the virtual host runs as an RPC server, and the application's TCP-related system calls (e.g., `read` and `write`) are done via RPC calls in order to allow multiple applications to use the same virtual host.
+This enables us to host both the static HTTP server and the dynamic HTTP server on two different ports of the same virtual IP address.
 
-Wireshark is a tool for monitoring network traffic and will come handy for the IP and TCP projects. 
-Since docker does not offer a graphical environment, running GUI applications (like wireshark) can be tricky.
-However, there's a few tricks that can be leveraged to run GUI applications. After looking at  host of options, 
-we recommend the following otion through with the wireshark GUI can be exposed through any browser. We have added 
-the instructions below.
+## Credits
 
-```
-# 1. start the docker image. 
-docker run -p 14500:14500 --restart unless-stopped --name wireshark --privileged ffeldhaus/wireshark
-
-# 2. wireshrk GUI can be accessed here.
-http://localhost:14500/?floating_menu=false&password=wireshark
-```
-
-The browser-based GUI is exactly the same as the regular one. Note that ```--privileged``` option is essential for allowing the packet capture. Further, it is assumed that ```port 14500``` is free.
-
-## Acknowledgments
-
-This setup is a modified version of the setup used by
-[CSCI0300](https://cs.brown.edu/courses/csci0300) and reused with
-permission, which is based on [Harvard's CS61](https://cs61.seas.harvard.edu/site/2021/).  
-For wireshark, we have used the setup described in [Wireshark Web Container Image](https://github.com/ffeldhaus/docker-wireshark).
+Bridge is created by [Alex Ding](https://github.com/alexander-ding), [Elizabeth Jones](https://github.com/L1Z3), and [Weili Shi](https://github.com/WillyKidd) as the final project for Brown's CSCI 1680: Computer Networks, fall 2023.
