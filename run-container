@@ -19,7 +19,7 @@ clean=false
 verbose=false
 arch="$(uname -m)"
 
-tag=main
+tag=latest
 # Set automatically by platform detection
 platform=
 
