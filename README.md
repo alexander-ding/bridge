@@ -22,6 +22,36 @@ Our custom HTTP server, running on top of this TCP implementation, makes `read` 
 Importantly, the virtual host runs as an RPC server, and the application's TCP-related system calls (e.g., `read` and `write`) are done via RPC calls in order to allow multiple applications to use the same virtual host.
 This enables us to host both the static HTTP server and the dynamic HTTP server on two different ports of the same virtual IP address.
 
+## Published Containers
+
+The development container is published at:
+
+```bash
+ghcr.io/alexander-ding/bridge:latest
+```
+
+The recommended way to run it is the script in this repository:
+
+```bash
+./run-container
+```
+
+The deployment container is published at:
+
+```bash
+ghcr.io/alexander-ding/bridge-server:latest
+```
+
+It spins up a static HTTP server at port 80 and a dynamic HTTP server at port 1000.
+To run:
+
+```bash
+docker pull ghcr.io/alexander-ding/bridge-server:latest 
+docker run -d -it --privileged -p 80:80 -p 1000:1000 ghcr.io/alexander-ding/bridge-server:latest
+```
+
+Now, you can visit `localhost` (defaults to port 80) on your browser see the website!
+
 ## Credits
 
 Bridge is created by [Alex Ding](https://github.com/alexander-ding), [Elizabeth Jones](https://github.com/L1Z3), and [Weili Shi](https://github.com/WillyKidd) as the final project for Brown's CSCI 1680: Computer Networks, fall 2023.
