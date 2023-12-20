@@ -33,6 +33,8 @@ To run:
 ```bash
 docker pull ghcr.io/alexander-ding/bridge-server:latest 
 docker run -d -it --privileged -p 80:80 -p 1000:1000 ghcr.io/alexander-ding/bridge-server:latest
+# additionally pass in the --restart always flag if you want the container to always restart when stopped (such as when the system shuts down)
+# docker run -d -it --privileged --restart always -p 80:80 -p 1000:1000 ghcr.io/alexander-ding/bridge-server:latest
 ```
 
 Now, you can visit `localhost` (defaults to port 80) on your browser see the website!
