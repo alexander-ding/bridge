@@ -3,7 +3,7 @@
 > In compliance with Brown's academic policy, the source code is not published.
 This repository only houses the development container source.
 
-[Website](https://alexding.me/bridge) | [Demo Video](https://www.youtube.com/watch?v=E2NQlRVIX6Q)
+[Website](https://alexding.me/bridge) | [Demo Video](https://www.youtube.com/watch?v=E2NQlRVIX6Q) | [Website Source](https://github.com/alexander-ding/bridge-website)
 
 Bridge is an RFC-compliant custom IP/TCP/HTTP implementation in Rust that runs through UDP sockets to create a virtual network.
 This virtual network can be bridged with the real kernel network stack to interface with real-world networking applications using a combination of `iptables` settings and a custom proxy thread to relay packets between a dummy Linux network interface and the virtual network.
